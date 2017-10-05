@@ -9,6 +9,7 @@ VERSION = "5.68"
 
 def get_friends_list():
     """Получение списка друзей пользователя"""
+    print("Получаем список друзей пользователя...")
     params = {
         "user_id": USER_ID,
         "fields": "first_name",
@@ -25,6 +26,7 @@ def get_friends_list():
 
 def get_user_groups():
     """Получение множества групп пользователя"""
+    print("Получаем группы пользователя...")
     params = {
         "user_id": USER_ID,
         "access_token": API_TOKEN,
@@ -32,14 +34,13 @@ def get_user_groups():
     }
     response = requests.get("https://api.vk.com/method/groups.get", params)
     user_groups = response.json().get("response").get("items")
-    print(user_groups)
     user_groups_set = set(user_groups)
-    print(user_groups_set)
     return user_groups_set
 
 
 def get_friends_groups(friends_ids):
     """Получение групп друзей пользователя"""
+    print("Получаем группы друзей пользователя...")
     groups_of_user_friends = []
     for friend_id in friends_ids:
         params = {
@@ -51,6 +52,7 @@ def get_friends_groups(friends_ids):
         friend_groups = response.json()
         groups_of_user_friends.append(friend_groups)
         time.sleep(0.5)
+        print(".")
     return groups_of_user_friends
 
 
@@ -58,18 +60,36 @@ def get_ids_of_friends_groups(groups_of_user_friends):
     """Получение множества идентификаторов групп друзей"""
     friends_groups_set = set()
     for friend in groups_of_user_friends:
-        # print(friend["response"]["items"])
         friends_groups_set.update(friend["response"]["items"])
-    print(friends_groups_set)
+    # print(friends_groups_set)
     return friends_groups_set
 
 
 def intersect_groups(user_groups_set, friends_groups_set):
-    spy_games = user_groups_set & friends_groups_set
-    print(spy_games)
+    common_groups = friends_groups_set & user_groups_set
+    groups_for_export = []
+    for group in user_groups_set:
+        if group not in common_groups:
+            groups_for_export.append(group)
+    print(type(groups_for_export))
+    return groups_for_export
 
-# def export_json():
+
+def get_group_info(groups_for_export):
+    groups_for_export = set(groups_for_export)
+    params = {
+        "group_ids": groups_for_export,
+        "fields": "members_count",
+        "access_token": API_TOKEN,
+        "v": VERSION
+    }
+    response = requests.get('https://api.vk.com/method/groups.getById', params)
+    group_info = response.json()
+    json_str = json.dumps(group_info)
+    with open("groups.json", "w", encoding="utf-8") as f:
+        f.write(json_str)
+    print(group_info)
 
 
 if __name__ == "__main__":
-    intersect_groups(get_user_groups(), get_ids_of_friends_groups(get_friends_groups(get_friends_list())))
+    get_group_info(intersect_groups(get_user_groups(), get_ids_of_friends_groups(get_friends_groups(get_friends_list()))))
