@@ -3,7 +3,7 @@ import json
 import time
 
 API_TOKEN = '5dfd6b0dee902310df772082421968f4c06443abecbc082a8440cb18910a56daca73ac8d04b25154a1128'
-USER_ID = '39075499'
+USER_ID = '1054564'
 VERSION = "5.68"
 
 
@@ -52,7 +52,8 @@ def get_friends_groups(friends_ids):
         friend_groups = response.json()
         groups_of_user_friends.append(friend_groups)
         time.sleep(0.5)
-        print(".")
+        print(".", end="", flush=True)
+    print("")
     return groups_of_user_friends
 
 
@@ -60,23 +61,25 @@ def get_ids_of_friends_groups(groups_of_user_friends):
     """Получение множества идентификаторов групп друзей"""
     friends_groups_set = set()
     for friend in groups_of_user_friends:
-        friends_groups_set.update(friend["response"]["items"])
-    # print(friends_groups_set)
+        try:
+            friends_groups_set.update(friend["response"]["items"])
+        except:
+            if friend["error"]:
+                continue
     return friends_groups_set
 
 
 def intersect_groups(user_groups_set, friends_groups_set):
-    common_groups = friends_groups_set & user_groups_set
+    """Поиск групп, в которых состоит пользователь, но не состоят друзья"""
+    common_groups = user_groups_set & friends_groups_set
     groups_for_export = []
     for group in user_groups_set:
         if group not in common_groups:
             groups_for_export.append(group)
-    print(type(groups_for_export))
     return groups_for_export
 
 
 def get_group_info(groups_for_export):
-    groups_for_export = set(groups_for_export)
     params = {
         "group_ids": groups_for_export,
         "fields": "members_count",
@@ -84,11 +87,11 @@ def get_group_info(groups_for_export):
         "v": VERSION
     }
     response = requests.get('https://api.vk.com/method/groups.getById', params)
-    group_info = response.json()
-    json_str = json.dumps(group_info)
+    group_info = response.json()["response"]
     with open("groups.json", "w", encoding="utf-8") as f:
-        f.write(json_str)
-    print(group_info)
+        json.dump(group_info, f, ensure_ascii=False)
+    print("Результат сохранен в файле groups.json")
+    # print(group_info)
 
 
 if __name__ == "__main__":
