@@ -80,8 +80,9 @@ def intersect_groups(user_groups_set, friends_groups_set):
 
 
 def get_group_info(groups_for_export):
+    groups_ids = ",".join(str(group_id) for group_id in groups_for_export)
     params = {
-        "group_ids": groups_for_export,
+        "group_ids": groups_ids,
         "fields": "members_count",
         "access_token": API_TOKEN,
         "v": VERSION
@@ -91,7 +92,6 @@ def get_group_info(groups_for_export):
     with open("groups.json", "w", encoding="utf-8") as f:
         json.dump(group_info, f, ensure_ascii=False)
     print("Результат сохранен в файле groups.json")
-    # print(group_info)
 
 
 if __name__ == "__main__":
