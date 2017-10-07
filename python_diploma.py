@@ -3,7 +3,7 @@ import json
 import time
 
 API_TOKEN = '5dfd6b0dee902310df772082421968f4c06443abecbc082a8440cb18910a56daca73ac8d04b25154a1128'
-USER_ID = '1054564'
+USER_ID = '5030613'
 VERSION = "5.68"
 
 
@@ -72,15 +72,16 @@ def get_ids_of_friends_groups(groups_of_user_friends):
 def intersect_groups(user_groups_set, friends_groups_set):
     """Поиск групп, в которых состоит пользователь, но не состоят друзья"""
     common_groups = user_groups_set & friends_groups_set
-    groups_for_export = []
+    groups_to_get_info = []
     for group in user_groups_set:
         if group not in common_groups:
-            groups_for_export.append(group)
-    return groups_for_export
+            groups_to_get_info.append(group)
+    return groups_to_get_info
 
 
-def get_group_info(groups_for_export):
-    groups_ids = ",".join(str(group_id) for group_id in groups_for_export)
+def get_group_info(groups_to_get_info):
+    """Получение информации о непересекающихся группах"""
+    groups_ids = ",".join(str(group_id) for group_id in groups_to_get_info)
     params = {
         "group_ids": groups_ids,
         "fields": "members_count",
@@ -89,8 +90,17 @@ def get_group_info(groups_for_export):
     }
     response = requests.get('https://api.vk.com/method/groups.getById', params)
     group_info = response.json()["response"]
+    output = []
     with open("groups.json", "w", encoding="utf-8") as f:
-        json.dump(group_info, f, ensure_ascii=False)
+        for group in group_info:
+            try:
+                group_id = group["id"]
+                group_name = group["name"]
+                group_members_count = group["members_count"]
+                output.append({"id": group_id, "name": group_name, "members_count": group_members_count})
+            except:
+                continue
+        json.dump(output, f, ensure_ascii=False)
     print("Результат сохранен в файле groups.json")
 
 
