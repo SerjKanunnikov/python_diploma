@@ -3,36 +3,33 @@ import json
 import time
 
 API_TOKEN = '5dfd6b0dee902310df772082421968f4c06443abecbc082a8440cb18910a56daca73ac8d04b25154a1128'
-USER_ID = '5030613'
+USER_ID = '39075499'
 VERSION = "5.68"
+
+
+def make_params(**kwargs):
+    params = {
+        "access_token": API_TOKEN,
+        "v": VERSION,
+        **kwargs
+    }
+    return params
 
 
 def get_friends_list():
     """Получение списка друзей пользователя"""
     print("Получаем список друзей пользователя...")
-    params = {
-        "user_id": USER_ID,
-        "fields": "first_name",
-        "access_token": API_TOKEN,
-        "v": VERSION
-    }
-    response = requests.get('https://api.vk.com/method/friends.get', params)
+    response = requests.get('https://api.vk.com/method/friends.get', make_params(user_id=USER_ID))
     friend_list = response.json().get('response').get('items')
-    friends_ids = []
-    for friend in friend_list:
-        friends_ids.append(friend["id"])
+    friends_ids = set(friend_list)
+    print(friends_ids)
     return friends_ids
 
 
 def get_user_groups():
     """Получение множества групп пользователя"""
     print("Получаем группы пользователя...")
-    params = {
-        "user_id": USER_ID,
-        "access_token": API_TOKEN,
-        "v": VERSION
-    }
-    response = requests.get("https://api.vk.com/method/groups.get", params)
+    response = requests.get("https://api.vk.com/method/groups.get", make_params(user_id=USER_ID))
     user_groups = response.json().get("response").get("items")
     user_groups_set = set(user_groups)
     return user_groups_set
@@ -43,12 +40,7 @@ def get_friends_groups(friends_ids):
     print("Получаем группы друзей пользователя...")
     groups_of_user_friends = []
     for friend_id in friends_ids:
-        params = {
-            "user_id": friend_id,
-            "access_token": API_TOKEN,
-            "v": VERSION
-        }
-        response = requests.get('https://api.vk.com/method/groups.get', params)
+        response = requests.get('https://api.vk.com/method/groups.get', make_params(user_id=friend_id))
         friend_groups = response.json()
         groups_of_user_friends.append(friend_groups)
         time.sleep(0.5)
@@ -81,14 +73,10 @@ def intersect_groups(user_groups_set, friends_groups_set):
 
 def get_group_info(groups_to_get_info):
     """Получение информации о непересекающихся группах"""
-    groups_ids = ",".join(str(group_id) for group_id in groups_to_get_info)
-    params = {
-        "group_ids": groups_ids,
-        "fields": "members_count",
-        "access_token": API_TOKEN,
-        "v": VERSION
-    }
-    response = requests.get('https://api.vk.com/method/groups.getById', params)
+    response = requests.get('https://api.vk.com/method/groups.getById',
+                            make_params(group_ids=",".join(str(group_id) for group_id in groups_to_get_info),
+                                        fields="members_count"))
+    print(response.json())
     group_info = response.json()["response"]
     output = []
     with open("groups.json", "w", encoding="utf-8") as f:
@@ -106,3 +94,4 @@ def get_group_info(groups_to_get_info):
 
 if __name__ == "__main__":
     get_group_info(intersect_groups(get_user_groups(), get_ids_of_friends_groups(get_friends_groups(get_friends_list()))))
+    # intersect_groups(get_user_groups(), get_friends_list())
