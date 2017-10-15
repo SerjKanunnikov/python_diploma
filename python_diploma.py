@@ -5,6 +5,7 @@ from config import API_TOKEN, USER_ID, VERSION
 
 
 def make_params(**kwargs):
+    """Формирование словаря спараметрами запроса"""
     params = {
         "access_token": API_TOKEN,
         "v": VERSION,
@@ -14,22 +15,22 @@ def make_params(**kwargs):
 
 
 def make_request(url, params):
+    """Создание запроса и обработка ошибок"""
     response = requests.get(url, params)
     response.raise_for_status()
     res = response.json()
     if res.get("response"):
         time.sleep(0.5)
-        # print(res.get("response"))
         return res.get("response")
     elif res.get("error"):
         if res.get("error").get("error_code") == 6:
             print(res.get("error"))
-            print("Too many request, retrying")
+            print("превышен лимит запросов, повторяем...")
             time.sleep(1)
             return make_request(url, params)
         elif res.get("error").get("error_code") == 18:
             print(res.get("error"))
-            print("User banned, skipping")
+            print("Пользователь заблокирован в группе, пропускаем...")
 
 
 def get_friends_list():
@@ -54,7 +55,8 @@ def get_friends_groups(friends_ids):
     groups_of_user_friends = []
     for friend_id in friends_ids:
         try:
-            friend_groups_response = make_request('https://api.vk.com/method/groups.get', make_params(user_id=friend_id))
+            friend_groups_response = make_request('https://api.vk.com/method/groups.get',
+                                                  make_params(user_id=friend_id))
             groups_of_user_friends.append(friend_groups_response["items"])
             print(".")
         except TypeError:
