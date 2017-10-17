@@ -3,9 +3,12 @@ import json
 import time
 from config import API_TOKEN, USER_ID, VERSION
 
+TOO_MANY_REQUESTS = 6
+USER_IS_BANNED = 18
+
 
 def make_params(**kwargs):
-    """Формирование словаря спараметрами запроса"""
+    """Формирование словаря с параметрами запроса"""
     params = {
         "access_token": API_TOKEN,
         "v": VERSION,
@@ -20,15 +23,14 @@ def make_request(url, params):
     response.raise_for_status()
     res = response.json()
     if res.get("response"):
-        time.sleep(0.5)
         return res.get("response")
     elif res.get("error"):
-        if res.get("error").get("error_code") == 6:
+        if res["error"]["error_code"] == TOO_MANY_REQUESTS:
             print(res.get("error"))
-            print("превышен лимит запросов, повторяем...")
+            print("Превышен лимит запросов, повторяем...")
             time.sleep(1)
             return make_request(url, params)
-        elif res.get("error").get("error_code") == 18:
+        elif res["error"]["error_code"] == USER_IS_BANNED:
             print(res.get("error"))
             print("Пользователь заблокирован в группе, пропускаем...")
 
@@ -61,7 +63,7 @@ def get_friends_groups(friends_ids):
             print(".")
         except TypeError:
             pass
-    print("")
+    print()
     return groups_of_user_friends
 
 
@@ -76,19 +78,14 @@ def get_ids_of_friends_groups(groups_of_user_friends):
 def group_difference(user_groups_set, friends_groups_set):
     """Поиск групп, в которых состоит пользователь, но не состоят друзья"""
     different_groups = user_groups_set - friends_groups_set
-    groups_to_get_info = []
-    for group in user_groups_set:
-        if group in different_groups:
-            groups_to_get_info.append(group)
-    return groups_to_get_info
+    return different_groups
 
 
 def get_group_info(groups_to_get_info):
     """Получение информации о непересекающихся группах"""
-    group_info_response = make_request('https://api.vk.com/method/groups.getById',
+    group_info = make_request('https://api.vk.com/method/groups.getById',
                             make_params(group_ids=",".join(str(group_id) for group_id in groups_to_get_info),
                                         fields="members_count"))
-    group_info = group_info_response
     output = []
     with open("groups.json", "w", encoding="utf-8") as f:
         for group in group_info:
