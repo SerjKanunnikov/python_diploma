@@ -81,10 +81,10 @@ def group_difference(user_groups_set, friends_groups_set):
     return different_groups
 
 
-def get_group_info(groups_to_get_info):
+def get_group_info(different_groups):
     """Получение информации о непересекающихся группах"""
     group_info = make_request('https://api.vk.com/method/groups.getById',
-                            make_params(group_ids=",".join(str(group_id) for group_id in groups_to_get_info),
+                            make_params(group_ids=",".join(str(group_id) for group_id in different_groups),
                                         fields="members_count"))
     output = []
     with open("groups.json", "w", encoding="utf-8") as f:
